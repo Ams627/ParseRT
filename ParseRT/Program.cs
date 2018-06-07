@@ -49,19 +49,25 @@ namespace ParseRT
                 var files = Directory.GetFiles(@"s:\", "RCS_R_T*.xml").OrderBy(x => x.Substring(8, 6).Reverse().ToString()).ToList();
                 var filename = files.Any() ?  files.First() : throw new Exception("No RCS_R_T* files found");
                 var doc = XDocument.Load(filename);
-                var rootNamespace = doc.Root.GetDefaultNamespace();
+                var ns = doc.Root.GetDefaultNamespace();
 
 
-                var res = from ftotElement in doc.Descendants(rootNamespace + "FTOT")
+                var res = from ftotElement in doc.Descendants(ns + "FTOT")
                           let ftot = ftotElement?.Attribute("t")?.Value
-                          let ccst = (format: ftotElement.Elements
-                          let filterLtypes = from licenseeTypeElement in ftotElement.Elements("LicenseeType")
+                          let trads = from traditional in ftotElement.Elements(ns + "Traditional")
+                                      select (
+                                        endDate: traditional.Attribute("u")?.Value,
+                                        startDate: traditional.Attribute("f")?.Value,
+                                        formats: from format in traditional.Elements("CCSTFormat") select format.Attribute("f").Value
+                                      )
+                          let filterLtypes = from licenseeTypeElement in ftotElement.Descendants("LicenseeType")
                                              let lt = licenseeTypeElement.Attribute("lt")?.Value
                                              where lt == "00001"
-                                                 from channel in licenseeTypeElement.Descendants("Channel")
-                                                  let ch = channel.Attribute("ch")?.Value
-                                                  where ch == "00004"
-                                             select new { ftot,  };
+                                             from channel in licenseeTypeElement.Descendants("Channel")
+                                             let ch = channel.Attribute("ch")?.Value
+                                             where ch == "00004"
+                                             select licenseeTypeElement
+                          select (ftot, trads);
 
 
 
